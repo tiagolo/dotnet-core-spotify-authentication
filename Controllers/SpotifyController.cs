@@ -6,14 +6,24 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Extensions;
+using Newtonsoft.Json;
 
 namespace dotnet_core_spotify_authentication.Controllers
 {
     class SpotifyAuthentication
     {
-        public string clientID     = "27adc1ba81634561b6f2b93e581bf3cc";
-        public string clientSecret = "4f885fa66efa4243b9cdfe0f8e33b0de";
+        public string clientID     = Environment.GetEnvironmentVariable("SpotifyClientID");
+        public string clientSecret = Environment.GetEnvironmentVariable("SpotifyClientSecret");
         public string redirectURL  = "http://localhost:5000/callback";
+    }
+
+    class SpotifyResponse
+    {
+        public string access_token = "";
+        public string token_type = "";
+        public string expires_in = "";
+        public string refresh_token = "";
+        public string scope = "";
     }
 
     [Route("")]
@@ -22,30 +32,15 @@ namespace dotnet_core_spotify_authentication.Controllers
         SpotifyAuthentication sAuth = new SpotifyAuthentication();
 
         [HttpGet]
-        public ContentResult Get()
+        public IActionResult Index()
         {   
-            var qb = new QueryBuilder();
-            qb.Add("response_type", "code");
-            qb.Add("client_id", sAuth.clientID);
-            qb.Add("scope", "user-read-private user-read-email");
-            qb.Add("redirect_uri", sAuth.redirectURL);
+            ViewData["response_type"] = "code";
+            ViewData["client_id"] = sAuth.clientID;
+            ViewData["client_secret"] = sAuth.clientSecret;
+            ViewData["client_scope"] = "user-read-private user-read-email user-modify-playback-state user-read-playback-state";
+            ViewData["redirect_uri"] = sAuth.redirectURL;
 
-            return new ContentResult {
-                ContentType = "text/html",
-                Content = @"
-                    <!DOCTYPE html>
-                    <html>
-                        <head>
-                            <meta charset=""utf-8"">
-                            <title>Spotify Auth Example</title>
-                        </head>
-
-                        <body>
-                            <a href=""https://accounts.spotify.com/authorize/" + qb.ToQueryString().ToString() + @"""><button>Authenticate at Spotify</button></a>
-                        </body>
-                    </html>
-                "
-            };
+            return View();
         }
 
         [Route("/callback")]
@@ -57,8 +52,9 @@ namespace dotnet_core_spotify_authentication.Controllers
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    Console.WriteLine(Environment.NewLine+"Your basic bearer: "+Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(sAuth.clientID+":"+sAuth.clientSecret)));
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(sAuth.clientID+":"+sAuth.clientSecret)));
+                    Environment.SetEnvironmentVariable("SpotifyBasicBearer",Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(sAuth.clientID+":"+sAuth.clientSecret)),EnvironmentVariableTarget.User);
+                    Console.WriteLine(Environment.NewLine+"Your basic bearer: "+Environment.GetEnvironmentVariable("SpotifyBasicBearer"));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Environment.GetEnvironmentVariable("SpotifyBasicBearer"));
 
                     FormUrlEncodedContent formContent = new FormUrlEncodedContent(new[]
                     {
@@ -71,6 +67,11 @@ namespace dotnet_core_spotify_authentication.Controllers
 
                     var responseContent = response.Content;
                     responseString = responseContent.ReadAsStringAsync().Result;
+                    
+                    SpotifyResponse sAuthResponse = JsonConvert.DeserializeObject<SpotifyResponse>(responseString);
+
+                    Environment.SetEnvironmentVariable("SpotifyAccessToken",sAuthResponse.access_token,EnvironmentVariableTarget.User);
+                    Environment.SetEnvironmentVariable("SpotifyRefreshToken",sAuthResponse.refresh_token,EnvironmentVariableTarget.User);
                 }
             }
 

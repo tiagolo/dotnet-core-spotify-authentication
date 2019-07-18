@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <title>Spotify Auth Example</title>
+    </head>
+
+    <style>
+        html,
+        body {
+        height: 100%;
+        }
+
+        body {
+        display: -ms-flexbox;
+        display: flex;
+        -ms-flex-align: center;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        background-color: #f5f5f5;
+        }
+
+        .form-signin {
+        width: 100%;
+        max-width: 330px;
+        padding: 15px;
+        margin: auto;
+        }
+
+        .form-signin .form-control {
+        position: relative;
+        box-sizing: border-box;
+        height: auto;
+        padding: 10px;
+        font-size: 16px;
+        }
+
+        .form-signin .form-control:focus {
+        z-index: 2;
+        }
+
+        .form-signin input[id="inputClientID"] {
+        margin-bottom: -1px;
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+        }
+
+        .form-signin input[id="inputClientSecret"] {
+        margin-bottom: 10px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+        }
+
+    </style>
+    <body class="text-center">
+        <form class="form-signin">
+            <h1 class="h3 mb-4 font-weight-normal">Spotify App</h1>
+            <label for="inputClientID" class="sr-only">Client ID</label>
+            <input type="password" id="inputClientID" class="form-control" placeholder="Client ID" required autofocus value='@ViewData["client_id"]' />
+            <label for="inputClientSecret" class="sr-only">Client Secret</label>
+            <input type="password" id="inputClientSecret" class="form-control" placeholder="Client Secret" required value='@ViewData["client_secret"]' />
+            <a class="btn btn-lg btn-primary btn-block" href="javascript:spotifyAuth()">Authenticate at Spotify</a>
+            <p class="mt-2 mb-2 text-muted">&copy; 2017-2019</p>
+        </form>
+    </body>
+
+    <script lang="text/javascript">
+        function spotifyAuth() {
+            console.log(`
+                ResponseType: @ViewData["response_type"]
+                ClientID: ${document.getElementById("inputClientID").value}
+                ClientSecret: ${document.getElementById("inputClientSecret").value}
+                scope: @ViewData["client_scope"]
+                redirectUrl: @ViewData["redirect_uri"]`);
+
+            let map = new Map();
+            map.set("response_type", "@ViewData["response_type"]");
+            map.set("redirect_uri", "@ViewData["redirect_uri"]");
+            map.set("scope", "@ViewData["scope"]");
+            map.set("client_id", document.getElementById("inputClientID").value);
+
+            let qtr = "?";
+            map.forEach( (value,key) => {
+                qtr += `${key}=${value}&`
+            });
+
+            qtr.substr(0,qtr.length-1);
+
+            window.open(`https://accounts.spotify.com/authorize/${qtr}`,"_self");
+        }
+    </script>
+</html>
