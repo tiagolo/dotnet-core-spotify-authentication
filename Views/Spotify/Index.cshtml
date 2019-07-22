@@ -68,20 +68,23 @@
         </form>
     </body>
 
-    <script lang="text/javascript">
+    <script type="text/javascript">
         function spotifyAuth() {
+            let clientID = document.getElementById("inputClientID").value;
+            let clientSecret = document.getElementById("inputClientSecret").value;
+
             console.log(`
                 ResponseType: @ViewData["response_type"]
-                ClientID: ${document.getElementById("inputClientID").value}
-                ClientSecret: ${document.getElementById("inputClientSecret").value}
+                ClientID: ${clientID}
+                ClientSecret: ${clientSecret}
                 scope: @ViewData["client_scope"]
                 redirectUrl: @ViewData["redirect_uri"]`);
 
             let map = new Map();
             map.set("response_type", "@ViewData["response_type"]");
             map.set("redirect_uri", "@ViewData["redirect_uri"]");
-            map.set("scope", "@ViewData["scope"]");
-            map.set("client_id", document.getElementById("inputClientID").value);
+            map.set("scope", "@ViewData["client_scope"]");
+            map.set("client_id", clientID);
 
             let qtr = "?";
             map.forEach( (value,key) => {
@@ -90,7 +93,19 @@
 
             qtr.substr(0,qtr.length-1);
 
-            window.open(`https://accounts.spotify.com/authorize/${qtr}`,"_self");
+            fetch('/client-store', {
+                method: 'POST',
+                headers: { "Content-Type": "application/json; charset=utf-8" },
+                body: JSON.stringify({
+                    clientID: clientID,
+                    clientSecret: clientSecret
+                })
+            })
+            .then(response => console.log(response))
+            .then(data => {
+                console.log(data);
+                window.open(`https://accounts.spotify.com/authorize/${qtr}`,"_self");
+            });
         }
     </script>
 </html>

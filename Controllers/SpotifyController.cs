@@ -10,10 +10,10 @@ using Newtonsoft.Json;
 
 namespace dotnet_core_spotify_authentication.Controllers
 {
-    class SpotifyAuthentication
+    public class SpotifyAuthentication
     {
-        public string clientID     = Environment.GetEnvironmentVariable("SpotifyClientID");
-        public string clientSecret = Environment.GetEnvironmentVariable("SpotifyClientSecret");
+        public string clientID     = Environment.GetEnvironmentVariable("SpotifyClientID",EnvironmentVariableTarget.User);
+        public string clientSecret = Environment.GetEnvironmentVariable("SpotifyClientSecret",EnvironmentVariableTarget.User);
         public string redirectURL  = "http://localhost:5000/callback";
     }
 
@@ -43,6 +43,24 @@ namespace dotnet_core_spotify_authentication.Controllers
             return View();
         }
 
+        [HttpPost("/client-store")]
+        public ContentResult ClientStore([FromBody] SpotifyAuthentication sAuthStore)
+        {
+            this.sAuth = sAuthStore;
+            var basicBearer = Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(sAuthStore.clientID+":"+sAuthStore.clientSecret));
+
+            Environment.SetEnvironmentVariable("SpotifyClientID",sAuthStore.clientID,EnvironmentVariableTarget.User);
+            Environment.SetEnvironmentVariable("SpotifyClientSecret",sAuthStore.clientSecret,EnvironmentVariableTarget.User);
+            Environment.SetEnvironmentVariable("SpotifyBasicBearer",basicBearer,EnvironmentVariableTarget.User);
+
+            string responseString = "Your basic bearer: " + basicBearer;
+
+            return new ContentResult {
+                ContentType = "application/json",
+                Content = responseString
+            };
+        }
+
         [Route("/callback")]
         public ContentResult Get(string code)
         {
@@ -52,9 +70,8 @@ namespace dotnet_core_spotify_authentication.Controllers
             {
                 using (HttpClient client = new HttpClient())
                 {
-                    Environment.SetEnvironmentVariable("SpotifyBasicBearer",Convert.ToBase64String(System.Text.ASCIIEncoding.ASCII.GetBytes(sAuth.clientID+":"+sAuth.clientSecret)),EnvironmentVariableTarget.User);
-                    Console.WriteLine(Environment.NewLine+"Your basic bearer: "+Environment.GetEnvironmentVariable("SpotifyBasicBearer"));
-                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Environment.GetEnvironmentVariable("SpotifyBasicBearer"));
+                    Console.WriteLine(Environment.NewLine+"Your basic bearer: "+Environment.GetEnvironmentVariable("SpotifyBasicBearer",EnvironmentVariableTarget.User));
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", Environment.GetEnvironmentVariable("SpotifyBasicBearer",EnvironmentVariableTarget.User));
 
                     FormUrlEncodedContent formContent = new FormUrlEncodedContent(new[]
                     {
